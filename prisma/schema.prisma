@@ -1,0 +1,249 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  ARRIVED
+  CHECKED_IN
+  IN_CONSULTATION
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum TokenStatus {
+  WAITING
+  IN_TRIAGE
+  WITH_DOCTOR
+  COMPLETED
+  SKIPPED
+  CANCELLED
+}
+
+enum PaymentMode {
+  UPI
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  NET_BANKING
+  INSURANCE_TPA
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String?
+  role         Role       @default(PATIENT)
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  patient Patient?
+  doctor  Doctor?
+
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String
+  status      Status   @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doctors      Doctor[]
+  appointments Appointment[]
+
+  @@map("departments")
+}
+
+model Patient {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientNumber    String   @unique
+  uhid             String?  @unique
+  mrn              String?  @unique
+  firstName        String
+  lastName         String
+  dateOfBirth      String
+  gender           Gender   @default(MALE)
+  phone            String
+  address          String
+  addressLine      String?
+  locality         String?
+  city             String?
+  district         String?
+  state            String?
+  pincode          String?
+  emergencyContact String
+  bloodGroup       String?
+  aadhaarNumber    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  appointments  Appointment[]
+  opdTokens     OPDToken[]
+  consultations Consultation[]
+  invoices      Invoice[]
+
+  @@map("patients")
+}
+
+model Doctor {
+  id             String     @id @default(uuid())
+  userId         String     @unique
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctorNumber   String     @unique
+  firstName      String
+  lastName       String
+  specialization String
+  qualification  String
+  licenseNumber  String     @unique
+  phone          String
+  bio            String
+  profileImage   String?
+  departmentId   String
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  experience     Int        @default(5)
+  status         Status     @default(ACTIVE)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  appointments  Appointment[]
+  opdTokens     OPDToken[]
+  consultations Consultation[]
+
+  @@map("doctors")
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  patientId       String
+  patient         Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId        String
+  doctor          Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  departmentId    String?
+  department      Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  appointmentDate String
+  startTime       String
+  endTime         String?
+  type            String            @default("NEW_CONSULTATION")
+  status          AppointmentStatus @default(CONFIRMED)
+  reason          String
+  tokenNumber     String?
+  notes           String?
+  fee             Float             @default(500)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  opdToken     OPDToken?
+  consultation Consultation?
+  invoices     Invoice[]
+
+  @@map("appointments")
+}
+
+model OPDToken {
+  id             String      @id @default(uuid())
+  appointmentId  String?     @unique
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patientId      String
+  patient        Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  tokenNumber    String
+  sequenceNumber Int
+  tokenDate      String
+  status         TokenStatus @default(WAITING)
+  calledAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("opd_tokens")
+}
+
+model Consultation {
+  id             String       @id @default(uuid())
+  appointmentId  String?      @unique
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  chiefComplaint String
+  diagnosis      String
+  visualAcuityOD String?
+  visualAcuityOS String?
+  iopOD          String?
+  iopOS          String?
+  clinicalNotes  String?
+  treatmentPlan  String?
+  status         String       @default("COMPLETED")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("consultations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  patientId     String
+  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId String?
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  serviceName   String
+  subtotal      Float
+  tax           Float         @default(0)
+  totalAmount   Float
+  paymentMode   PaymentMode   @default(UPI)
+  status        PaymentStatus @default(PAID)
+  issuedAt      DateTime      @default(now())
+  dueDate       String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("invoices")
+}

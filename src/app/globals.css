@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #0f4c81;
+  --primary-dark: #1e3a8a;
+  --primary-light: #e0f2fe;
+  
+  --accent: #0d9488;
+  --accent-light: #ccfbf1;
+  
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  
+  --success: #16a34a;
+  --warning: #d97706;
+  --error: #dc2626;
+  --info: #2563eb;
+}
+
+@theme {
+  --color-primary: #0f4c81;
+  --color-primary-dark: #1e3a8a;
+  --color-primary-light: #e0f2fe;
+  
+  --color-accent: #0d9488;
+  --color-accent-light: #ccfbf1;
+  
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Custom scrollbar styling for healthcare cleanliness */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
