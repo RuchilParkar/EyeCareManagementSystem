@@ -256,27 +256,38 @@ export interface Consultation {
   updatedAt: string;
 }
 
+export type PrescriptionStatus = 'ACTIVE' | 'FILLED' | 'COMPLETED' | 'CANCELLED';
+
 export interface PrescriptionItem {
   id: string;
-  prescriptionId: string;
+  prescriptionId?: string;
   medicineName: string;
   dosage: string;
   frequency: string;
+  route?: string;
   duration: string;
-  instructions: string;
+  instructions?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Prescription {
   id: string;
-  consultationId: string;
+  prescriptionNumber: string;
+  status: PrescriptionStatus;
+  consultationId?: string | null;
+  appointmentId?: string | null;
   patientId: string;
   doctorId: string;
   issuedAt: string;
-  notes?: string;
+  notes?: string | null;
   items: PrescriptionItem[];
+  createdAt?: string;
+  updatedAt?: string;
   patientName?: string;
   doctorName?: string;
 }
+
 
 export interface Notification {
   id: string;
@@ -321,11 +332,16 @@ export interface Invoice {
   patientId: string;
   patientName: string;
   appointmentId?: string;
+  consultationId?: string;
+  prescriptionId?: string;
   serviceName: string;
   subtotal: number;
+  discount?: number;
   tax: number;
   taxAmount?: number;
   totalAmount: number;
+  amountPaid?: number;
+  amountDue?: number;
   paymentMode?: PaymentMode;
   status: InvoiceStatus;
   issueDate?: string;

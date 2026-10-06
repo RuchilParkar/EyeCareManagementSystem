@@ -201,3 +201,21 @@ export function generateOPDToken(seqNumber: number, dateStr?: string): string {
   const padSeq = String(seqNumber).padStart(3, '0');
   return `OPD-${today}-${padSeq}`;
 }
+
+/**
+ * Server-side Invoice Number Generator (e.g., INV-2026-000042)
+ */
+export function generateInvoiceNumber(seqNumber: number): string {
+  const year = new Date().getFullYear();
+  const padSeq = String(seqNumber).padStart(6, '0');
+  return `INV-${year}-${padSeq}`;
+}
+
+/**
+ * Server-side Payment Receipt Number Generator (e.g., PAY-2026-000042)
+ */
+export function generatePaymentNumber(seqNumber: number): string {
+  const year = new Date().getFullYear();
+  const padSeq = String(seqNumber).padStart(6, '0');
+  return `PAY-${year}-${padSeq}`;
+}

@@ -152,6 +152,8 @@ export const consultationService = {
     if (prescriptionItems && prescriptionItems.length > 0) {
       const newPrescription: Prescription = {
         id: `prsc-${Date.now()}`,
+        prescriptionNumber: `RX-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        status: 'ACTIVE',
         consultationId: completedRecord.id,
         patientId: completedRecord.patientId,
         doctorId: completedRecord.doctorId,

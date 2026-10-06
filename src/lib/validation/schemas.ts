@@ -285,30 +285,188 @@ export const consultationSchema = z.object({
   treatmentPlan: z.any().optional(),
 });
 
+export const prescriptionStatusEnum = z.enum([
+  'ACTIVE',
+  'FILLED',
+  'COMPLETED',
+  'CANCELLED',
+]);
+
+export type PrescriptionStatus = z.infer<typeof prescriptionStatusEnum>;
+
+export const VALID_PRESCRIPTION_TRANSITIONS: Record<string, string[]> = {
+  ACTIVE: ['FILLED', 'COMPLETED', 'CANCELLED'],
+  FILLED: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
+/**
+ * Validates whether a prescription status transition from currentStatus to newStatus is allowed.
+ * Enforces the valid prescription lifecycle:
+ * - ACTIVE -> FILLED, COMPLETED, CANCELLED
+ * - FILLED -> COMPLETED, CANCELLED
+ * - COMPLETED & CANCELLED are terminal states (no transitions allowed)
+ */
+export function isValidPrescriptionStatusTransition(
+  currentStatus: string,
+  newStatus: string
+): boolean {
+  if (!currentStatus || !newStatus) return false;
+  const allowed = VALID_PRESCRIPTION_TRANSITIONS[currentStatus];
+  if (!allowed) return false;
+  return allowed.includes(newStatus);
+}
+
+export const prescriptionStatusTransitionSchema = z
+  .object({
+    currentStatus: prescriptionStatusEnum,
+    newStatus: prescriptionStatusEnum,
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => isValidPrescriptionStatusTransition(data.currentStatus, data.newStatus),
+    {
+      message: 'Invalid prescription status transition',
+      path: ['newStatus'],
+    }
+  );
+
 export const prescriptionItemSchema = z.object({
   id: z.string().optional(),
   medicineName: z.string().min(2, 'Medicine name is required.'),
   dosage: z.string().min(1, 'Dosage is required.'),
   frequency: z.string().min(1, 'Frequency is required.'),
+  route: z.string().optional().default('TOPICAL_EYE'),
   duration: z.string().min(1, 'Duration is required.'),
-  instructions: z.string().min(1, 'Instructions are required.'),
+  instructions: z.string().optional(),
+});
+
+export const createPrescriptionItemSchema = z.object({
+  medicineName: z.string().min(2, 'Medicine name is required.'),
+  dosage: z.string().min(1, 'Dosage is required.'),
+  frequency: z.string().min(1, 'Frequency is required.'),
+  route: z.string().min(1, 'Route is required.').default('TOPICAL_EYE'),
+  duration: z.string().min(1, 'Duration is required.'),
+  instructions: z.string().optional(),
+});
+
+export const createConsultationSchema = z.object({
+  id: z.string().optional(),
+  appointmentId: z.string().optional(),
+  patientId: z.string().optional(),
+  doctorId: z.string().optional(),
+  chiefComplaint: z.string().optional(),
+  symptoms: z.string().optional(),
+  clinicalNotes: z.string().optional(),
+  examinationNotes: z.string().optional(),
+  diagnosis: z.string().optional(),
+  followUpDate: z.string().optional(),
+  status: z.string().optional().default('COMPLETED'),
+  visualAcuity: visualAcuitySchema.optional(),
+  iop: iopMeasurementSchema.optional(),
+  refraction: refractionSchema.optional(),
+  externalExam: z.any().optional(),
+  slitLampExam: z.any().optional(),
+  fundusExam: z.any().optional(),
+  investigations: z.any().optional(),
+  diagnosisDetail: z.any().optional(),
+  treatmentPlan: z.any().optional(),
+  items: z.array(createPrescriptionItemSchema).optional(),
+  medications: z.array(createPrescriptionItemSchema).optional(),
+});
+
+export const updateConsultationSchema = createConsultationSchema.partial();
+
+export const createPrescriptionSchema = z.object({
+  patientId: z.string().min(1, 'Patient ID is required.'),
+  doctorId: z.string().optional(), // Verified server-side from session when role is DOCTOR
+  appointmentId: z.string().optional(),
+  consultationId: z.string().optional(),
+  notes: z.string().optional(),
+  items: z.array(createPrescriptionItemSchema).min(1, 'At least one prescription item is required.'),
+});
+
+export const updatePrescriptionStatusSchema = z.object({
+  status: prescriptionStatusEnum,
+  notes: z.string().optional(),
 });
 
 export const prescriptionSchema = z.object({
   id: z.string().optional(),
+  prescriptionNumber: z.string().optional(),
+  status: prescriptionStatusEnum.optional().default('ACTIVE'),
   consultationId: z.string().optional(),
+  appointmentId: z.string().optional(),
   patientId: z.string().min(1, 'Patient ID is required.'),
   doctorId: z.string().min(1, 'Doctor ID is required.'),
   notes: z.string().optional(),
   items: z.array(prescriptionItemSchema).min(1, 'At least one prescription item is required.'),
 });
 
+
+export const paymentStatusEnum = z.enum([
+  'PENDING',
+  'PAID',
+  'PARTIALLY_PAID',
+  'DRAFT',
+  'OVERDUE',
+  'CANCELLED',
+  'REFUNDED',
+]);
+
+export type PaymentStatus = z.infer<typeof paymentStatusEnum>;
+
 export const invoiceItemSchema = z.object({
   id: z.string().optional(),
   description: z.string().min(1, 'Description is required.'),
+  category: z.string().optional().default('CONSULTATION'),
   quantity: z.number().min(1),
   unitPrice: z.number().min(0),
   totalPrice: z.number().min(0),
+});
+
+export const createInvoiceItemSchema = z.object({
+  description: z.string().min(1, 'Item description is required.'),
+  category: z.string().optional().default('CONSULTATION'),
+  quantity: z.number().min(1, 'Quantity must be at least 1.').default(1),
+  unitPrice: z.number().min(0, 'Unit price cannot be negative.'),
+});
+
+export const createInvoiceSchema = z.object({
+  patientId: z.string().min(1, 'Patient ID is required.'),
+  appointmentId: z.string().optional(),
+  consultationId: z.string().optional(),
+  prescriptionId: z.string().optional(),
+  serviceName: z.string().optional().default('Ophthalmology Services'),
+  discount: z.number().min(0, 'Discount cannot be negative.').optional().default(0),
+  tax: z.number().min(0, 'Tax cannot be negative.').optional().default(0),
+  paymentMode: paymentModeEnum.optional().default('UPI'),
+  status: paymentStatusEnum.optional().default('PENDING'),
+  notes: z.string().optional(),
+  dueDate: z.string().optional(),
+  items: z.array(createInvoiceItemSchema).min(1, 'At least one invoice item is required.'),
+});
+
+export const updateInvoiceSchema = z.object({
+  serviceName: z.string().optional(),
+  status: paymentStatusEnum.optional(),
+  discount: z.number().min(0).optional(),
+  tax: z.number().min(0).optional(),
+  dueDate: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const recordPaymentSchema = z.object({
+  amount: z.number().gt(0, 'Payment amount must be greater than zero.'),
+  paymentMode: paymentModeEnum.default('UPI'),
+  transactionRef: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const refundInvoiceSchema = z.object({
+  amount: z.number().gt(0, 'Refund amount must be greater than zero.'),
+  reason: z.string().min(3, 'Refund reason is required.'),
 });
 
 export const invoiceSchema = z.object({
@@ -319,10 +477,13 @@ export const invoiceSchema = z.object({
   appointmentId: z.string().optional(),
   serviceName: z.string().min(1, 'Service name is required.'),
   subtotal: z.number().min(0),
+  discount: z.number().min(0).optional().default(0),
   tax: z.number().min(0),
   totalAmount: z.number().min(0),
+  amountPaid: z.number().min(0).optional().default(0),
+  amountDue: z.number().min(0).optional().default(0),
   paymentMode: paymentModeEnum.optional().default('UPI'),
-  status: z.enum(['PENDING', 'PAID', 'PARTIALLY_PAID', 'DRAFT', 'OVERDUE', 'CANCELLED']).default('PENDING'),
+  status: paymentStatusEnum.default('PENDING'),
   issueDate: z.string().optional(),
   dueDate: z.string().min(4, 'Due date is required.'),
   items: z.array(invoiceItemSchema).optional(),

@@ -328,6 +328,8 @@ export const mockConsultations: Consultation[] = [
 export const mockPrescriptions: Prescription[] = [
   {
     id: 'prsc-301',
+    prescriptionNumber: 'RX-2026-000001',
+    status: 'ACTIVE',
     consultationId: 'cns-201',
     patientId: 'pat-01',
     doctorId: 'doc-01',
@@ -335,6 +337,7 @@ export const mockPrescriptions: Prescription[] = [
     notes: 'Wear corrective optical lenses during computer work and driving.',
     patientName: 'Aarav Sharma',
     doctorName: 'Dr. Priya Mehta',
+
     items: [
       {
         id: 'pi-01',

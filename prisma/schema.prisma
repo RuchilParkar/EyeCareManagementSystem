@@ -64,8 +64,19 @@ enum PaymentStatus {
   PENDING
   PAID
   PARTIALLY_PAID
+  DRAFT
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  FILLED
+  COMPLETED
   CANCELLED
 }
+
 
 model User {
   id           String     @id @default(uuid())
@@ -126,6 +137,7 @@ model Patient {
   opdTokens     OPDToken[]
   consultations Consultation[]
   invoices      Invoice[]
+  prescriptions Prescription[]
 
   @@map("patients")
 }
@@ -153,6 +165,7 @@ model Doctor {
   appointments  Appointment[]
   opdTokens     OPDToken[]
   consultations Consultation[]
+  prescriptions Prescription[]
 
   @@map("doctors")
 }
@@ -179,6 +192,7 @@ model Appointment {
 
   opdToken     OPDToken?
   consultation Consultation?
+  prescription Prescription?
   invoices     Invoice[]
 
   @@map("appointments")
@@ -224,26 +238,128 @@ model Consultation {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  prescription Prescription?
+  invoice      Invoice?
+
   @@map("consultations")
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique
-  patientId     String
-  patient       Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  appointmentId String?
-  appointment   Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  serviceName   String
-  subtotal      Float
-  tax           Float         @default(0)
-  totalAmount   Float
-  paymentMode   PaymentMode   @default(UPI)
-  status        PaymentStatus @default(PAID)
-  issuedAt      DateTime      @default(now())
-  dueDate       String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  patientId       String
+  patient         Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId   String?
+  appointment     Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  consultationId  String?       @unique
+  consultation    Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  prescriptionId  String?       @unique
+  prescription    Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  serviceName     String
+  subtotal        Float
+  discount        Float         @default(0)
+  tax             Float         @default(0)
+  totalAmount     Float
+  amountPaid      Float         @default(0)
+  amountDue       Float         @default(0)
+  paymentMode     PaymentMode   @default(UPI)
+  status          PaymentStatus @default(PENDING)
+  notes           String?
+  refundStatus    String?
+  refundAmount    Float         @default(0)
+  refundedAt      DateTime?
+  tpaClaimId      String?
+  tpaApprovalCode String?
+  issuedAt        DateTime      @default(now())
+  dueDate         String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
+  items    InvoiceItem[]
+  payments PaymentRecord[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([patientId, status])
   @@map("invoices")
 }
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  category    String   @default("CONSULTATION")
+  quantity    Int      @default(1)
+  unitPrice   Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model PaymentRecord {
+  id               String      @id @default(uuid())
+  paymentNumber    String      @unique
+  invoiceId        String
+  invoice          Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount           Float
+  paymentMode      PaymentMode @default(UPI)
+  transactionRef   String?
+  notes            String?
+  receivedByUserId String?
+  createdAt        DateTime    @default(now())
+
+  @@index([invoiceId])
+  @@map("payment_records")
+}
+
+model Prescription {
+  id                 String             @id @default(uuid())
+  prescriptionNumber String             @unique
+  patientId          String
+  patient            Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId           String
+  doctor             Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  appointmentId      String?            @unique
+  appointment        Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  consultationId     String?            @unique
+  consultation       Consultation?      @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  issuedAt           DateTime           @default(now())
+  status             PrescriptionStatus @default(ACTIVE)
+  notes              String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  items   PrescriptionItem[]
+  invoice Invoice?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([patientId, status])
+  @@index([doctorId, createdAt])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicineName   String
+  dosage         String
+  frequency      String
+  route          String       @default("TOPICAL_EYE")
+  duration       String
+  instructions   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+

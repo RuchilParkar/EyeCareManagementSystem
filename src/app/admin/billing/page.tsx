@@ -14,6 +14,7 @@ import {
 } from '@/components/shared';
 import { billingService } from '@/lib/api/billingService';
 import { Invoice } from '@/types';
+import { formatINR } from '@/lib/utils/localization';
 
 export default function AdminBillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -93,7 +94,7 @@ export default function AdminBillingPage() {
       header: 'Total Amount',
       cell: (inv: Invoice) => (
         <span className="text-sm font-bold text-gray-900">
-          ${inv.totalAmount.toFixed(2)}
+          {formatINR(inv.totalAmount)}
         </span>
       ),
     },
@@ -136,15 +137,15 @@ export default function AdminBillingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-4 border-l-4 border-l-brand-600">
               <p className="text-xs font-medium text-gray-500 uppercase">Total Billed</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">${totalRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatINR(totalRevenue)}</p>
             </Card>
             <Card className="p-4 border-l-4 border-l-emerald-600">
               <p className="text-xs font-medium text-gray-500 uppercase">Collected Revenue</p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">${paidRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">{formatINR(paidRevenue)}</p>
             </Card>
             <Card className="p-4 border-l-4 border-l-amber-500">
               <p className="text-xs font-medium text-gray-500 uppercase">Pending Payments</p>
-              <p className="text-2xl font-bold text-amber-700 mt-1">${pendingRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-amber-700 mt-1">{formatINR(pendingRevenue)}</p>
             </Card>
           </div>
 

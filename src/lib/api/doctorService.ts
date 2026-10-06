@@ -130,6 +130,8 @@ export const doctorService = {
     await new Promise((res) => setTimeout(res, 300));
     const newPrescription: Prescription = {
       id: `prsc-${Date.now()}`,
+      prescriptionNumber: `RX-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: 'ACTIVE',
       consultationId: data.consultationId || 'cns-201',
       patientId: data.patientId || 'pat-01',
       doctorId: data.doctorId || 'doc-01',

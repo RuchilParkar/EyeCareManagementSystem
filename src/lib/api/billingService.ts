@@ -17,7 +17,7 @@ export const billingService = {
       }
     }
     await new Promise((res) => setTimeout(res, DELAY_MS));
-    return { success: true, data: mockInvoices };
+    return { success: true, data: mockInvoices as any };
   },
 
   async getInvoiceById(invoiceId: string): Promise<ApiResponse<Invoice>> {
@@ -34,20 +34,34 @@ export const billingService = {
     }
     await new Promise((res) => setTimeout(res, DELAY_MS));
     const invoice = mockInvoices.find((i) => i.id === invoiceId) || mockInvoices[0];
-    return { success: true, data: invoice };
+    return { success: true, data: invoice as any };
   },
 
   async markInvoicePaid(invoiceId: string): Promise<ApiResponse<Invoice>> {
     if (typeof window !== 'undefined') {
       try {
-        const res = await fetch(`/api/billing/${invoiceId}`, {
-          method: 'PUT',
+        // First get invoice to know total amount/due
+        const invRes = await fetch(`/api/billing/${invoiceId}`);
+        let dueAmount = 0;
+        let mode = 'UPI';
+        if (invRes.ok) {
+          const invJson = await invRes.json();
+          if (invJson.success && invJson.data) {
+            dueAmount = invJson.data.amountDue > 0 ? invJson.data.amountDue : invJson.data.totalAmount;
+            mode = invJson.data.paymentMode || 'UPI';
+          }
+        }
+
+        const res = await fetch(`/api/billing/${invoiceId}/payments`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'PAID' }),
+          body: JSON.stringify({ amount: dueAmount || 500, paymentMode: mode }),
         });
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data) return json;
+          if (json.success && json.data?.invoice) {
+            return { success: true, data: json.data.invoice };
+          }
         }
       } catch {
         // Fallback to mock
@@ -70,13 +84,13 @@ export const billingService = {
         action: 'INVOICE_MARKED_PAID',
         entityType: 'Invoice',
         entityId: invoiceId,
-        target: `Invoice #${mockInvoices[index].invoiceNumber} ($${mockInvoices[index].totalAmount})`,
+        target: `Invoice #${mockInvoices[index].invoiceNumber} (₹${mockInvoices[index].totalAmount})`,
         ipAddress: '192.168.1.10',
         timestamp: new Date().toISOString(),
         createdAt: new Date().toISOString(),
       });
 
-      return { success: true, data: mockInvoices[index] };
+      return { success: true, data: mockInvoices[index] as any };
     }
     return {
       success: false,

@@ -12,6 +12,7 @@ import {
 } from '@/components/shared';
 import { billingService } from '@/lib/api/billingService';
 import { Invoice } from '@/types';
+import { formatINR } from '@/lib/utils/localization';
 
 export default function AdminInvoiceDetailPage() {
   const params = useParams();
@@ -163,8 +164,8 @@ export default function AdminInvoiceDetailPage() {
                     <tr key={idx}>
                       <td className="py-3 px-4 text-gray-900 font-medium">{item.description}</td>
                       <td className="py-3 px-4 text-center text-gray-600">{item.quantity}</td>
-                      <td className="py-3 px-4 text-right text-gray-600">${item.unitPrice.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right text-gray-900 font-semibold">${item.totalPrice.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-gray-600">{formatINR(item.unitPrice)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900 font-semibold">{formatINR(item.totalPrice)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -176,15 +177,15 @@ export default function AdminInvoiceDetailPage() {
               <div className="w-64 space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal:</span>
-                  <span>${invoice.subtotal.toFixed(2)}</span>
+                  <span>{formatINR(invoice.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Tax Amount:</span>
-                  <span>${(invoice.taxAmount || invoice.tax || 0).toFixed(2)}</span>
+                  <span>{formatINR(invoice.taxAmount || invoice.tax || 0)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg text-gray-900 border-t border-gray-200 pt-2">
                   <span>Grand Total:</span>
-                  <span className="text-brand-700">${invoice.totalAmount.toFixed(2)}</span>
+                  <span className="text-brand-700">{formatINR(invoice.totalAmount)}</span>
                 </div>
               </div>
             </div>
